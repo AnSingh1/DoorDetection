@@ -1,8 +1,8 @@
-import pdf2image
 from pdf2image import convert_from_bytes
-from PIL import Image
+from PIL import Image, ImageFilter
 import io
 import os
+import numpy as np
 
 try:
     from ultralytics import YOLO
@@ -56,6 +56,44 @@ def detect(file_content: bytes, filename: str) -> Tuple[Image.Image, Image.Image
         if img.mode != 'RGB':
             img = img.convert('RGB')
         
+        img = img.convert('L')
+        gray = np.array(img)
+
+        # 1. Better Thresholding
+        # instead of hard 254, we use a slightly safer value OR 
+        # a "percentile" based threshold if lighting varies.
+        # 240 is usually safer than 254 to avoid grain, but if lines are VERY faint, 
+        # you might need to stretch contrast first.
+        thr = 240 
+        binary_mask = (gray > thr).astype(np.uint8) # 1=Bg, 0=Line
+
+        # 2. Optimized 3x3 Min Filter (Erosion)
+        # We can use scipy for speed, or your manual shift.
+        # Let's add a "Closing" step logic manually (Bridge gaps).
+        # Closing = Erode (thicken black) then Dilate (shrink black).
+        # But you just want THICKER, so your current Erosion is actually correct.
+        # To make it stronger, we can apply it TWICE.
+
+        def erode_manual(mask):
+            pad = 1
+            p = np.pad(mask, pad, mode='edge') # 'edge' padding is safer than constant 0
+            neighbors = [
+                p[0:-2, 0:-2], p[0:-2, 1:-1], p[0:-2, 2:],
+                p[1:-1, 0:-2], p[1:-1, 1:-1], p[1:-1, 2:],
+                p[2:  , 0:-2], p[2:  , 1:-1], p[2:  , 2:],
+            ]
+            return np.minimum.reduce(neighbors)
+
+        # First pass: Thicken lines
+        # step1 = erode_manual(binary_mask)
+
+        # Optional Second pass: Thicken MORE (if doors are still too thin)
+        # step2 = erode_manual(step1)
+
+        img_data = binary_mask * 255 # Convert back to 0-255 grayscale
+        img = Image.fromarray(img_data).convert('RGB')
+ 
+        
         boxes_data = []
         
         # Determine imgsz based on image size - use 3200 for large images only
@@ -92,7 +130,6 @@ def detect(file_content: bytes, filename: str) -> Tuple[Image.Image, Image.Image
                             result.boxes = filtered_boxes
                             
                             # Extract box data for frontend
-                            import numpy as np
                             for box in filtered_boxes:
                                 xyxy = box.xyxy[0].cpu().numpy()  # Get coordinates
                                 x1, y1, x2, y2 = xyxy.astype(int)
