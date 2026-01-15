@@ -22,7 +22,7 @@ except ImportError:
 
 # Constants
 MODEL_PATH = Path(__file__).parent / "best.pt"
-DEFAULT_DPI = 300
+DEFAULT_DPI = 150
 LARGE_IMAGE_THRESHOLD = 2000
 LARGE_IMAGE_SIZE = 3200
 DEFAULT_IMAGE_SIZE = 640
