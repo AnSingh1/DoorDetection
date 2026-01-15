@@ -2,9 +2,14 @@ from fastapi import FastAPI, File, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
 import io
 import base64
-from PIL import Image, ImageDraw
 from typing import List
-import json
+import sys
+from pathlib import Path
+
+# Add backend directory to path
+sys.path.insert(0, str(Path(__file__).parent))
+
+from detect import detect
 
 app = FastAPI()
 
@@ -26,10 +31,9 @@ def hello():
     return {"message": "Hello World from the Dashboard"}
 
 @app.post("/detect")
-async def detect(files: List[UploadFile] = File(...)):
+async def detect_endpoint(files: List[UploadFile] = File(...)):
     """
-    Process uploaded files and return one image per file.
-    Each image contains the filename and file information.
+    Process uploaded files using the detect function and return detection results.
     """
     try:
         if not files:
@@ -37,30 +41,31 @@ async def detect(files: List[UploadFile] = File(...)):
         
         images_data = []
         
-        # Create one image per file
-        for i, file in enumerate(files):
-            img = Image.new('RGB', (800, 600), color='white')
-            draw = ImageDraw.Draw(img)
+        # Process each file with the detect function
+        for file in files:
+            # Read file content
+            file_content = await file.read()
             
-            # Add text with file information
-            draw.text((50, 50), "Door Plan Detection Result", fill='black')
-            draw.text((50, 100), f"File {i+1} of {len(files)}", fill='black')
-            draw.text((50, 150), f"Filename: {file.filename}", fill='black')
-            draw.text((50, 200), f"Content-Type: {file.content_type}", fill='black')
+            # Run detection - returns (annotated_img, original_img, boxes_data)
+            annotated_img, original_img, boxes_data = detect(file_content, file.filename)
             
-            # Add some sample detection info
-            draw.text((50, 300), "Detection Status: Complete", fill='green')
-            draw.text((50, 350), "Confidence: 95.2%", fill='green')
-            
-            # Convert image to base64
+            # Convert annotated image to base64
             img_bytes = io.BytesIO()
-            img.save(img_bytes, format='PNG')
+            annotated_img.save(img_bytes, format='PNG')
             img_bytes.seek(0)
-            base64_image = base64.b64encode(img_bytes.getvalue()).decode('utf-8')
+            base64_annotated = base64.b64encode(img_bytes.getvalue()).decode('utf-8')
+            
+            # Convert original image to base64
+            img_bytes = io.BytesIO()
+            original_img.save(img_bytes, format='PNG')
+            img_bytes.seek(0)
+            base64_original = base64.b64encode(img_bytes.getvalue()).decode('utf-8')
             
             images_data.append({
                 "filename": file.filename,
-                "image": f"data:image/png;base64,{base64_image}"
+                "image": f"data:image/png;base64,{base64_annotated}",
+                "original_image": f"data:image/png;base64,{base64_original}",
+                "boxes": boxes_data
             })
         
         return {"images": images_data}
