@@ -1,74 +1,78 @@
-from fastapi import FastAPI, File, UploadFile
-from fastapi.middleware.cors import CORSMiddleware
-import io
+"""FastAPI backend for Door Plan Detection."""
+
 import base64
+import io
+import logging
 from typing import List
-import sys
-from pathlib import Path
 
-# Add backend directory to path
-sys.path.insert(0, str(Path(__file__).parent))
+from fastapi import FastAPI, File, HTTPException, UploadFile
+from fastapi.middleware.cors import CORSMiddleware
 
-from detect import detect
+from .detect import detect
 
-app = FastAPI()
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
 
-# Add CORS middleware FIRST - it must be the first middleware
+app = FastAPI(
+    title="Door Plan Detection API",
+    description="API for detecting doors in architectural floor plans",
+    version="1.0.0",
+)
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    allow_origins=["*"],  # Configure for production
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
 
+
 @app.get("/")
-def read_root():
-    return {"message": "Hello from FastAPI"}
+def health_check():
+    """Health check endpoint."""
+    return {"status": "healthy", "service": "door-detection"}
+
 
 @app.get("/api/hello")
 def hello():
-    return {"message": "Hello World from the Dashboard"}
+    """Simple greeting endpoint."""
+    return {"message": "Door Plan Detection API"}
 
 @app.post("/detect")
 async def detect_endpoint(files: List[UploadFile] = File(...)):
-    """
-    Process uploaded files using the detect function and return detection results.
-    """
-    try:
-        if not files:
-            return {"error": "No files provided"}
-        
-        images_data = []
-        
-        # Process each file with the detect function
-        for file in files:
-            # Read file content
-            file_content = await file.read()
+    """Process files and return door detection results."""
+    if not files:
+        raise HTTPException(status_code=400, detail="No files provided")
+    
+    results = []
+    
+    for file in files:
+        try:
+            content = await file.read()
+            annotated, original, boxes = detect(content, file.filename or "unknown")
             
-            # Run detection - returns (annotated_img, original_img, boxes_data)
-            annotated_img, original_img, boxes_data = detect(file_content, file.filename)
+            # Encode images
+            ann_buf = io.BytesIO()
+            annotated.save(ann_buf, format="PNG")
+            ann_b64 = base64.b64encode(ann_buf.getvalue()).decode()
             
-            # Convert annotated image to base64
-            img_bytes = io.BytesIO()
-            annotated_img.save(img_bytes, format='PNG')
-            img_bytes.seek(0)
-            base64_annotated = base64.b64encode(img_bytes.getvalue()).decode('utf-8')
+            orig_buf = io.BytesIO()
+            original.save(orig_buf, format="PNG")
+            orig_b64 = base64.b64encode(orig_buf.getvalue()).decode()
             
-            # Convert original image to base64
-            img_bytes = io.BytesIO()
-            original_img.save(img_bytes, format='PNG')
-            img_bytes.seek(0)
-            base64_original = base64.b64encode(img_bytes.getvalue()).decode('utf-8')
-            
-            images_data.append({
+            results.append({
                 "filename": file.filename,
-                "image": f"data:image/png;base64,{base64_annotated}",
-                "original_image": f"data:image/png;base64,{base64_original}",
-                "boxes": boxes_data
+                "image": f"data:image/png;base64,{ann_b64}",
+                "original_image": f"data:image/png;base64,{orig_b64}",
+                "boxes": boxes,
             })
-        
-        return {"images": images_data}
-    except Exception as e:
-        return {"error": str(e)}
+        except ValueError as e:
+            logger.error(f"Processing error: {e}")
+            raise HTTPException(status_code=422, detail=str(e)) from e
+        except Exception as e:
+            logger.error(f"Unexpected error: {e}")
+            raise HTTPException(status_code=500, detail="Internal error") from e
+    
+    return {"images": results}
 
