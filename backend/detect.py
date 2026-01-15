@@ -58,9 +58,13 @@ def detect(file_content: bytes, filename: str) -> Tuple[Image.Image, Image.Image
         
         boxes_data = []
         
+        # Determine imgsz based on image size - use 3200 for large images only
+        img_width, img_height = img.size
+        imgsz = 3200 if max(img_width, img_height) > 2000 else 640
+        
         # Run YOLOv8 detection if model is available
         if model is not None:
-            results = model(img)
+            results = model(img, imgsz=imgsz)
             # Get the annotated image from results
             if results and len(results) > 0:
                 result = results[0]
