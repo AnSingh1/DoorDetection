@@ -34,7 +34,7 @@ git clone <repository-url>
 cd "Door Plan Detection"
 ```
 
-### 2. Backend Setup
+### 2. API Setup
 
 ```bash
 # Create and activate virtual environment
@@ -82,7 +82,7 @@ Open your browser and navigate to:
 http://localhost:3000
 ```
 
-The backend API will be running at `http://localhost:8000`
+The API backend will be running at `http://localhost:8000`
 
 ## Features
 
@@ -125,7 +125,7 @@ The backend API will be running at `http://localhost:8000`
 - **Icons**: Lucide React
 - **Build Tool**: Next.js built-in
 
-### Backend
+### Backend (API)
 - **Framework**: FastAPI (Python 3.11+)
 - **ML Model**: YOLOv8 (Ultralytics)
 - **Deep Learning**: PyTorch 2.0+, TorchVision
@@ -139,7 +139,7 @@ The backend API will be running at `http://localhost:8000`
 
 ```
 Door Plan Detection/
-├── backend/
+├── api/
 │   ├── main.py              # FastAPI application & endpoints
 │   ├── detect.py            # YOLOv8 detection logic
 │   ├── best.pt              # YOLOv8 trained model weights
@@ -236,10 +236,10 @@ Upload files (images/PDFs) for door detection.
 NEXT_PUBLIC_API_URL=http://localhost:8000
 ```
 
-**Backend** (optional):
+**API** (optional):
 ```env
 # Currently using default values, but you can add:
-# MODEL_PATH=./backend/best.pt
+# MODEL_PATH=./api/best.pt
 # LOG_LEVEL=INFO
 ```
 
@@ -255,9 +255,9 @@ Binary threshold for preprocessing: **250** (optimized for floor plans)
 
 ### Running in Development Mode
 
-**Backend with auto-reload:**
+**API with auto-reload:**
 ```bash
-uvicorn backend.main:app --reload --port 8000 --log-level debug
+uvicorn api.main:app --reload --port 8000 --log-level debug
 ```
 
 **Frontend with hot module replacement:**
@@ -302,6 +302,25 @@ print(response.json())
 
 ## Building for Production
 
+### Deploying to Vercel
+
+This project is configured for easy deployment to Vercel:
+
+1. **Push your code to GitHub**
+2. **Import the project in Vercel**:
+   - Go to [vercel.com](https://vercel.com)
+   - Click "Add New Project"
+   - Import your GitHub repository
+3. **Vercel will automatically**:
+   - Detect the Next.js frontend in `/frontend`
+   - Detect the Python API in `/api`
+   - Deploy both as serverless functions
+
+**Important Notes:**
+- The `vercel.json` configuration routes API requests to `/api/*`
+- Large ML models (>50MB) may need Vercel Pro for deployment
+- Consider using a separate API deployment (Railway, Render, etc.) for the YOLOv8 model
+
 ### Frontend Build
 
 ```bash
@@ -310,7 +329,7 @@ npm run build
 npm start  # Runs production server on port 3000
 ```
 
-### Backend Deployment
+### API Deployment
 
 ```bash
 # Install production dependencies
@@ -318,7 +337,7 @@ pip install -r requirements.txt
 
 # Run with Gunicorn (production ASGI server)
 pip install gunicorn
-gunicorn backend.main:app -w 4 -k uvicorn.workers.UvicornWorker --bind 0.0.0.0:8000
+gunicorn api.main:app -w 4 -k uvicorn.workers.UvicornWorker --bind 0.0.0.0:8000
 ```
 
 ### Docker (Optional)
@@ -329,8 +348,8 @@ FROM python:3.11-slim
 WORKDIR /app
 COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
-COPY backend/ ./backend/
-CMD ["uvicorn", "backend.main:app", "--host", "0.0.0.0", "--port", "8000"]
+COPY api/ ./api/
+CMD ["uvicorn", "api.main:app", "--host", "0.0.0.0", "--port", "8000"]
 ```
 
 
@@ -339,7 +358,7 @@ CMD ["uvicorn", "backend.main:app", "--host", "0.0.0.0", "--port", "8000"]
 ### Common Issues
 
 **"Model not found" or detection not working:**
-- Ensure `best.pt` exists in the `backend/` directory
+- Ensure `best.pt` exists in the `api/` directory
 - Verify YOLOv8 is properly installed: `python -c "from ultralytics import YOLO; print('OK')"`
 - Check model file is not corrupted
 
@@ -349,12 +368,12 @@ CMD ["uvicorn", "backend.main:app", "--host", "0.0.0.0", "--port", "8000"]
 - On Windows: Ensure Poppler bin directory is in PATH
 
 **CORS errors in browser:**
-- Backend includes permissive CORS for development (`allow_origins=["*"]`)
-- For production, update `backend/main.py` to specify allowed origins
+- API includes permissive CORS for development (`allow_origins=["*"]`)
+- For production, update `api/main.py` to specify allowed origins
 - Example: `allow_origins=["https://yourdomain.com"]`
 
 **Port already in use:**
-- Backend: Change port with `--port 8001`
+- API: Change port with `--port 8001`
 - Frontend: Set in `package.json` or use `PORT=3001 npm run dev`
 
 **Dependencies not installing:**
