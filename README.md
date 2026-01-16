@@ -30,7 +30,7 @@ Download from [Poppler for Windows](https://github.com/oschwartz10612/poppler-wi
 ### 1. Clone the Repository
 
 ```bash
-git clone <repository-url>
+git clone https://github.com/AnSingh1/DoorDetection.git
 cd "Door Plan Detection"
 ```
 
@@ -406,7 +406,7 @@ pip install torch torchvision --index-url https://download.pytorch.org/whl/cu118
 python -c "import torch; print(f'CUDA available: {torch.cuda.is_available()}')"
 ```
 
-## 📝 Technical Details
+## Technical Details
 
 ### Detection Pipeline
 
@@ -434,7 +434,7 @@ python -c "import torch; print(f'CUDA available: {torch.cuda.is_available()}')"
 - **Input Format**: RGB images
 - **Output**: Bounding boxes (x, y, width, height) + confidence scores
 
-## 🤝 Contributing
+## Contributing
 
 Contributions are welcome! Please follow these steps:
 
@@ -444,18 +444,18 @@ Contributions are welcome! Please follow these steps:
 4. Push to the branch (`git push origin feature/amazing-feature`)
 5. Open a Pull Request
 
-## 📄 License
+## License
 
 This project is licensed under the MIT License.
 
-## 🙏 Acknowledgments
+## Acknowledgments
 
 - **YOLOv8** by Ultralytics for the detection framework
 - **FastAPI** for the high-performance backend
 - **Next.js** team for the modern React framework
 - **Tailwind CSS** for the utility-first styling
 
-## 📧 Support
+## Support
 
 For issues, questions, or suggestions:
 - Open an issue on GitHub
