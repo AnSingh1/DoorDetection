@@ -65,8 +65,8 @@ echo "NEXT_PUBLIC_API_URL=http://localhost:8000" > .env.local
 **Terminal 1 - Backend Server:**
 ```bash
 # From project root
-source .venv/bin/activate
-uvicorn backend.main:app --reload --port 8000
+source .venv/bin/activate # On Windows: .venv\Scripts\activate
+uvicorn api.main:app --reload --port 8000
 ```
 
 **Terminal 2 - Frontend Dev Server:**
@@ -143,7 +143,6 @@ Door Plan Detection/
 │   ├── main.py              # FastAPI application & endpoints
 │   ├── detect.py            # YOLOv8 detection logic
 │   ├── best.pt              # YOLOv8 trained model weights
-│   └── __pycache__/
 ├── frontend/
 │   ├── app/
 │   │   ├── page.tsx         # Main React component
