@@ -30,7 +30,7 @@ Download from [Poppler for Windows](https://github.com/oschwartz10612/poppler-wi
 ### 1. Clone the Repository
 
 ```bash
-git clone <repository-url>
+git clone https://github.com/AnSingh1/DoorDetection.git
 cd "Door Plan Detection"
 ```
 
